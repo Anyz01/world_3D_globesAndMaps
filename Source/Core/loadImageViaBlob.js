@@ -1,10 +1,10 @@
 /*global define*/
 define([
-        '../ThirdParty/when',
+        '../ThirdParty/bluebird',
         './loadBlob',
         './loadImage'
     ], function(
-        when,
+        Promise,
         loadBlob,
         loadImage) {
     'use strict';
@@ -39,7 +39,7 @@ define([
      * });
      *
      * // load several images in parallel
-     * when.all([loadImageViaBlob('image1.png'), loadImageViaBlob('image2.png')]).then(function(images) {
+     * Promise.all([loadImageViaBlob('image1.png'), loadImageViaBlob('image2.png')]).then(function(images) {
      *     // images is an array containing all the loaded images
      * });
      * 
@@ -60,7 +60,7 @@ define([
                 return image;
             }, function(error) {
                 window.URL.revokeObjectURL(blobUrl);
-                return when.reject(error);
+                return Promise.reject(error);
             });
         });
     }

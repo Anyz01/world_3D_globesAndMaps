@@ -1,6 +1,6 @@
 /*global define*/
 define([
-        '../ThirdParty/when',
+        '../ThirdParty/bluebird',
         './Credit',
         './defaultValue',
         './defined',
@@ -16,7 +16,7 @@ define([
         './TerrainProvider',
         './throttleRequestByServer'
     ], function(
-        when,
+        Promise,
         Credit,
         defaultValue,
         defined,
@@ -101,7 +101,7 @@ define([
             credit = new Credit(credit);
         }
         this._credit = credit;
-        this._readyPromise = when.resolve(true);
+        this._readyPromise = Promise.resolve(true);
     }
 
     defineProperties(ArcGisImageServerTerrainProvider.prototype, {
@@ -237,7 +237,7 @@ define([
         }
 
         var that = this;
-        return when(promise, function(image) {
+        return Promise.resolve(promise).then(function(image) {
             return new HeightmapTerrainData({
                 buffer : getImagePixels(image),
                 width : that._heightmapWidth,

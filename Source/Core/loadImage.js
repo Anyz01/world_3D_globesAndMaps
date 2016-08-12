@@ -1,12 +1,12 @@
 /*global define*/
 define([
-        '../ThirdParty/when',
+        '../ThirdParty/bluebird',
         './defaultValue',
         './defined',
         './DeveloperError',
         './isCrossOriginUrl'
     ], function(
-        when,
+        Promise,
         defaultValue,
         defined,
         DeveloperError,
@@ -40,7 +40,7 @@ define([
      * when.all([loadImage('image1.png'), loadImage('image2.png')]).then(function(images) {
      *     // images is an array containing all the loaded images
      * });
-     * 
+     *
      * @see {@link http://www.w3.org/TR/cors/|Cross-Origin Resource Sharing}
      * @see {@link http://wiki.commonjs.org/wiki/Promises/A|CommonJS Promises/A}
      */
@@ -53,7 +53,7 @@ define([
 
         allowCrossOrigin = defaultValue(allowCrossOrigin, true);
 
-        return when(url, function(url) {
+        function createImage(url) {
             var crossOrigin;
 
             // data URIs can't have allowCrossOrigin set.
@@ -63,31 +63,32 @@ define([
                 crossOrigin = isCrossOriginUrl(url);
             }
 
-            var deferred = when.defer();
+            return loadImage.createImage(url, crossOrigin);
+        }
 
-            loadImage.createImage(url, crossOrigin, deferred);
-
-            return deferred.promise;
-        });
+        if (typeof url.then === 'function') {
+            return url.then(createImage);
+        }
+        return createImage(url);
     }
 
     // This is broken out into a separate function so that it can be mocked for testing purposes.
-    loadImage.createImage = function(url, crossOrigin, deferred) {
-        var image = new Image();
+    loadImage.createImage = function(url, crossOrigin) {
+        return new Promise(function(resolve, reject) {
+            var image = new Image();
 
-        image.onload = function() {
-            deferred.resolve(image);
-        };
+            image.onload = function() {
+                resolve(image);
+            };
 
-        image.onerror = function(e) {
-            deferred.reject(e);
-        };
+            image.onerror = reject;
 
-        if (crossOrigin) {
-            image.crossOrigin = '';
-        }
+            if (crossOrigin) {
+                image.crossOrigin = '';
+            }
 
-        image.src = url;
+            image.src = url;
+        });
     };
 
     loadImage.defaultCreateImage = loadImage.createImage;

@@ -246,8 +246,7 @@ define([
         }
 
         function requestMetadata() {
-            var metadata = loadJson(metadataUrl);
-            when(metadata, metadataSuccess, metadataFailure);
+            loadJson(metadataUrl).then(metadataSuccess).catch(metadataFailure);
         }
 
         requestMetadata();

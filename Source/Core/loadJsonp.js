@@ -1,7 +1,7 @@
 /*global define*/
 define([
         '../ThirdParty/Uri',
-        '../ThirdParty/when',
+        '../ThirdParty/bluebird',
         './combine',
         './defaultValue',
         './defined',
@@ -10,7 +10,7 @@ define([
         './queryToObject'
     ], function(
         Uri,
-        when,
+        Promise,
         combine,
         defaultValue,
         defined,
@@ -36,7 +36,7 @@ define([
      * // load a data asynchronously
      * Cesium.loadJsonp('some/webservice').then(function(data) {
      *     // use the loaded data
-     * }).otherwise(function(error) {
+     * }).catch(function(error) {
      *     // an error occurred
      * });
      * 
@@ -57,46 +57,44 @@ define([
             functionName = 'loadJsonp' + Math.random().toString().substring(2, 8);
         } while (defined(window[functionName]));
 
-        var deferred = when.defer();
+        return new Promise(function(resolve, reject) {
+            //assign a function with that name in the global scope
+            window[functionName] = function(data) {
+                resolve(data);
 
-        //assign a function with that name in the global scope
-        window[functionName] = function(data) {
-            deferred.resolve(data);
+                try {
+                    delete window[functionName];
+                } catch (e) {
+                    window[functionName] = undefined;
+                }
+            };
 
-            try {
-                delete window[functionName];
-            } catch (e) {
-                window[functionName] = undefined;
+            var uri = new Uri(url);
+
+            var queryOptions = queryToObject(defaultValue(uri.query, ''));
+
+            if (defined(options.parameters)) {
+                queryOptions = combine(options.parameters, queryOptions);
             }
-        };
 
-        var uri = new Uri(url);
+            var callbackParameterName = defaultValue(options.callbackParameterName, 'callback');
+            queryOptions[callbackParameterName] = functionName;
 
-        var queryOptions = queryToObject(defaultValue(uri.query, ''));
+            uri.query = objectToQuery(queryOptions);
 
-        if (defined(options.parameters)) {
-            queryOptions = combine(options.parameters, queryOptions);
-        }
+            url = uri.toString();
 
-        var callbackParameterName = defaultValue(options.callbackParameterName, 'callback');
-        queryOptions[callbackParameterName] = functionName;
+            var proxy = options.proxy;
+            if (defined(proxy)) {
+                url = proxy.getURL(url);
+            }
 
-        uri.query = objectToQuery(queryOptions);
-
-        url = uri.toString();
-
-        var proxy = options.proxy;
-        if (defined(proxy)) {
-            url = proxy.getURL(url);
-        }
-
-        loadJsonp.loadAndExecuteScript(url, functionName, deferred);
-
-        return deferred.promise;
+            loadJsonp.loadAndExecuteScript(url, functionName, reject);
+        });
     }
 
     // This is broken out into a separate function so that it can be mocked for testing purposes.
-    loadJsonp.loadAndExecuteScript = function(url, functionName, deferred) {
+    loadJsonp.loadAndExecuteScript = function(url, functionName, reject) {
         var script = document.createElement('script');
         script.async = true;
         script.src = url;
@@ -107,7 +105,7 @@ define([
             head.removeChild(script);
         };
         script.onerror = function(e) {
-            deferred.reject(e);
+            reject(e);
         };
 
         head.appendChild(script);

@@ -1,13 +1,13 @@
 /*global define*/
 define([
-        '../ThirdParty/when',
+        '../ThirdParty/bluebird',
         './defaultValue',
         './defined',
         './DeveloperError',
         './RequestErrorEvent',
         './RuntimeError'
     ], function(
-        when,
+        Promise,
         defaultValue,
         defined,
         DeveloperError,
@@ -40,7 +40,7 @@ define([
      *     responseType : 'blob'
      * }).then(function(blob) {
      *     // use the data
-     * }).otherwise(function(error) {
+     * }).catch(function(error) {
      *     // an error occurred
      * });
      * 
@@ -66,13 +66,15 @@ define([
         var headers = options.headers;
         var overrideMimeType = options.overrideMimeType;
 
-        return when(options.url, function(url) {
-            var deferred = when.defer();
+        function load(url) {
+            return loadWithXhr.load(url, responseType, method, data, headers, undefined, overrideMimeType);
+        }
 
-            loadWithXhr.load(url, responseType, method, data, headers, deferred, overrideMimeType);
+        if (typeof options.url.then === 'function') {
+            return options.url.then(load);
+        }
 
-            return deferred.promise;
-        });
+        return load(options.url);
     }
 
     var dataUriRegex = /^data:(.*?)(;base64)?,(.*)$/;
@@ -124,56 +126,58 @@ define([
 
     // This is broken out into a separate function so that it can be mocked for testing purposes.
     loadWithXhr.load = function(url, responseType, method, data, headers, deferred, overrideMimeType) {
-        var dataUriRegexResult = dataUriRegex.exec(url);
-        if (dataUriRegexResult !== null) {
-            deferred.resolve(decodeDataUri(dataUriRegexResult, responseType));
-            return;
-        }
-
-        var xhr = new XMLHttpRequest();
-
-        if (defined(overrideMimeType) && defined(xhr.overrideMimeType)) {
-            xhr.overrideMimeType(overrideMimeType);
-        }
-
-        xhr.open(method, url, true);
-
-        if (defined(headers)) {
-            for ( var key in headers) {
-                if (headers.hasOwnProperty(key)) {
-                    xhr.setRequestHeader(key, headers[key]);
-                }
+        return new Promise(function(resolve, reject) {
+            var dataUriRegexResult = dataUriRegex.exec(url);
+            if (dataUriRegexResult !== null) {
+                resolve(decodeDataUri(dataUriRegexResult, responseType));
+                return;
             }
-        }
 
-        if (defined(responseType)) {
-            xhr.responseType = responseType;
-        }
+            var xhr = new XMLHttpRequest();
 
-        xhr.onload = function() {
-            if (xhr.status >= 200 && xhr.status < 300) {
-                if (defined(xhr.response)) {
-                    deferred.resolve(xhr.response);
-                } else {
-                    // busted old browsers.
-                    if (defined(xhr.responseXML) && xhr.responseXML.hasChildNodes()) {
-                        deferred.resolve(xhr.responseXML);
-                    } else if (defined(xhr.responseText)) {
-                        deferred.resolve(xhr.responseText);
-                    } else {
-                        deferred.reject(new RuntimeError('unknown XMLHttpRequest response type.'));
+            if (defined(overrideMimeType) && defined(xhr.overrideMimeType)) {
+                xhr.overrideMimeType(overrideMimeType);
+            }
+
+            xhr.open(method, url, true);
+
+            if (defined(headers)) {
+                for (var key in headers) {
+                    if (headers.hasOwnProperty(key)) {
+                        xhr.setRequestHeader(key, headers[key]);
                     }
                 }
-            } else {
-                deferred.reject(new RequestErrorEvent(xhr.status, xhr.response, xhr.getAllResponseHeaders()));
             }
-        };
 
-        xhr.onerror = function(e) {
-            deferred.reject(new RequestErrorEvent());
-        };
+            if (defined(responseType)) {
+                xhr.responseType = responseType;
+            }
 
-        xhr.send(data);
+            xhr.onload = function() {
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    if (defined(xhr.response)) {
+                        resolve(xhr.response);
+                    } else {
+                        // busted old browsers.
+                        if (defined(xhr.responseXML) && xhr.responseXML.hasChildNodes()) {
+                            resolve(xhr.responseXML);
+                        } else if (defined(xhr.responseText)) {
+                            resolve(xhr.responseText);
+                        } else {
+                            reject(new RuntimeError('unknown XMLHttpRequest response type.'));
+                        }
+                    }
+                } else {
+                    reject(new RequestErrorEvent(xhr.status, xhr.response, xhr.getAllResponseHeaders()));
+                }
+            };
+
+            xhr.onerror = function(e) {
+                reject(new RequestErrorEvent());
+            };
+
+            xhr.send(data);
+        });
     };
 
     loadWithXhr.defaultLoad = loadWithXhr.load;

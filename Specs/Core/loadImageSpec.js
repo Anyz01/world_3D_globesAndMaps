@@ -75,7 +75,7 @@ defineSuite([
         var failure = false;
         var loadedImage;
 
-        when(loadImage(dataUri), function(image) {
+        var promise = when(loadImage(dataUri), function(image) {
             success = true;
             loadedImage = image;
         }, function() {
@@ -87,9 +87,11 @@ defineSuite([
         expect(failure).toEqual(false);
 
         fakeImage.onload();
-        expect(success).toEqual(true);
-        expect(failure).toEqual(false);
-        expect(loadedImage).toBe(fakeImage);
+        return promise.then(function() {
+            expect(success).toEqual(true);
+            expect(failure).toEqual(false);
+            expect(loadedImage).toBe(fakeImage);
+        });
     });
 
     it('rejects the promise when the image errors', function() {
@@ -100,7 +102,7 @@ defineSuite([
         var failure = false;
         var loadedImage;
 
-        when(loadImage(dataUri), function(image) {
+        var promise = when(loadImage(dataUri), function(image) {
             success = true;
             loadedImage = image;
         }, function() {
@@ -112,8 +114,10 @@ defineSuite([
         expect(failure).toEqual(false);
 
         fakeImage.onerror();
-        expect(success).toEqual(false);
-        expect(failure).toEqual(true);
-        expect(loadedImage).toBeUndefined();
+        return promise.then(function() {
+            expect(success).toEqual(false);
+            expect(failure).toEqual(true);
+            expect(loadedImage).toBeUndefined();
+        });
     });
 });
