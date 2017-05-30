@@ -620,6 +620,20 @@ function setStatus(state, targetUrl, description, context) {
 
 gulp.task('release', ['combine', 'minifyRelease', 'generateDocumentation']);
 
+gulp.task('coverage', function(done) {
+    var options = {
+        configFile : karmaConfigFile,
+        browserNoActivityTimeout : 10 * 60 * 1000,
+        browserDisconnectTimeout : 10 * 60 * 1000,
+        browsers : ['Electron'],
+        preprocessors : {
+            'Source/**/*.js' : ['coverage']
+        },
+        reporters : ['spec', 'coverage']
+    };
+    karma.start(options, done);
+});
+
 gulp.task('test', function(done) {
     var argv = yargs.argv;
 

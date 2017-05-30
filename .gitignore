@@ -1,6 +1,7 @@
 /.metadata
 /Build
 /Instrumented
+/coverage
 /Cesium-*.zip
 /cesium-*.tgz
 .DS_Store
