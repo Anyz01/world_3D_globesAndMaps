@@ -1,10 +1,29 @@
 Change Log
 ==========
 
+### 1.53 - 2019-01-02
+
+##### Additions :tada:
+* Added image-based lighting for PBR models and 3D Tiles. [#7172](https://github.com/AnalyticalGraphicsInc/cesium/pull/7172)
+    * `Scene.specularEnvironmentMaps` is a url to a KTX file that contains the specular environment map and convoluted mipmaps for image-based lighting of all PBR models in the scene.
+    * `Scene.sphericalHarmonicCoefficients` is an array of 9 `Cartesian3` spherical harmonics coefficients for the diffuse irradiance of all PBR models in the scene.
+    * The `specularEnvironmentMaps` and `sphericalHarmonicCoefficients` properties of `Model` and `Cesium3DTileset` can be used to override the values from the scene for specific models and tilesets.
+    * The `luminanceAtZenith` property of `Model` and `Cesium3DTileset` adjusts the luminance of the procedural image-based lighting.
+* Double click away from an entity to un-track it [#7285](https://github.com/AnalyticalGraphicsInc/cesium/pull/7285)
+
+##### Fixes :wrench:
+* Fixed 3D Tiles visibility checking when running multiple passes within the same frame. [#7289](https://github.com/AnalyticalGraphicsInc/cesium/pull/7289)
+* Fixed contrast on imagery layers. [#7382](https://github.com/AnalyticalGraphicsInc/cesium/issues/7382)
+* Fixed rendering transparent background color when `highDynamicRange` is enabled. [#7427](https://github.com/AnalyticalGraphicsInc/cesium/issues/7427)
+* Fixed translucent geometry when `highDynamicRange` is toggled. [#7451](https://github.com/AnalyticalGraphicsInc/cesium/pull/7451)
+
 ### 1.52 - 2018-12-03
 
 ##### Breaking Changes :mega:
 * `TerrainProviders` that implement `availability` must now also implement the `loadTileDataAvailability` method.
+
+##### Deprecated :hourglass_flowing_sand:
+* The property `ModelAnimation.speedup` has been deprecated and renamed to `ModelAnimation.multiplier`. `speedup` will be removed in version 1.54. [#7393](https://github.com/AnalyticalGraphicsInc/cesium/pull/7393)
 
 ##### Additions :tada:
 * Added functions to get the most detailed height of 3D Tiles on-screen or off-screen. [#7115](https://github.com/AnalyticalGraphicsInc/cesium/pull/7115)
